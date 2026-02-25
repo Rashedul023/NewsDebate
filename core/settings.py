@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from pathlib import Path
+import logging.config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -131,3 +132,82 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+
+## LOG
+load_dotenv()
+
+# NewsAPI settings
+NEWS_API_KEY = os.getenv('NEWS_API_KEY')
+
+# Create logs directory if it doesn't exist
+LOGS_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOGS_DIR):
+    os.makedirs(LOGS_DIR)
+
+# Proper logging configuration with separate files
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+        'detailed': {
+            'format': '[{levelname}] {asctime} - {name} - {filename}:{lineno} - {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        # Console handler
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'INFO',
+            'formatter': 'simple',
+        },
+        # File handler for general news logs
+        'news_file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'news_fetcher.log'),
+            'level': 'INFO',
+            'formatter': 'detailed',
+            'encoding': 'utf-8',
+        },
+        # Separate file for errors only
+        'error_file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'errors.log'),
+            'level': 'ERROR',
+            'formatter': 'detailed',
+            'encoding': 'utf-8',
+        },
+        # File handler for successful fetches
+        'success_file': {
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOGS_DIR, 'success.log'),
+            'level': 'INFO',
+            'formatter': 'simple',
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        # News app logger
+        'news': {
+            'handlers': ['console', 'news_file', 'error_file', 'success_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        # Django error logger
+        'django.request': {
+            'handlers': ['error_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
+}

@@ -3,3 +3,9 @@ venv/
 __pycache__/  
 *.pyc  
 .env 
+logs/
+*.log
+news_fetcher.log
+errors.log
+success.log
+debug.log
