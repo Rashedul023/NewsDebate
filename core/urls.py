@@ -14,9 +14,28 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from django.http import JsonResponse
+from datetime import datetime
+
+def home(request):
+    """Home page showing API is working"""
+    return JsonResponse({
+        'message': 'NewsDebate API is running!',
+        'api_endpoints': {
+            'articles': '/api/articles/',
+            'article_detail': '/api/articles/{id}/',
+            'stats': '/api/articles/stats/',
+            'sources': '/api/articles/sources/',
+        },
+        'docs': 'Visit /api/articles/ in browser to test',
+        'timestamp': datetime.now().isoformat(),
+    })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', home),  # Home page
+    path('', include('news.urls')),  # Include news app URLs
 ]
