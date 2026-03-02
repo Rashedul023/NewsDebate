@@ -17,11 +17,15 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from django.shortcuts import render
 from django.http import JsonResponse
 from datetime import datetime
 
 def home(request):
-    """Home page showing API is working"""
+    return render(request, 'news/article_list.html')
+
+def api_info(request):
+    """API information page"""
     return JsonResponse({
         'message': 'NewsDebate API is running!',
         'api_endpoints': {
@@ -30,12 +34,13 @@ def home(request):
             'stats': '/api/articles/stats/',
             'sources': '/api/articles/sources/',
         },
-        'docs': 'Visit /api/articles/ in browser to test',
+        'website': 'Visit / for the frontend',
         'timestamp': datetime.now().isoformat(),
     })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', home),  # Home page
-    path('', include('news.urls')),  # Include news app URLs
+    path('', home), 
+    path('api-info/', api_info), 
+    path('', include('news.urls')),  # API endpoints at /api/
 ]

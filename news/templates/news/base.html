@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="NewsDebate - US Political News with Bias Detection">
+    <title>{% block title %}NewsDebate{% endblock %}</title>
+    
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'news/css/style.css' %}">
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+    
+    <!-- Header/Navbar -->
+    {% include 'news/partials/header.html' %}
+    
+    <!-- Main Content -->
+    <main class="flex-grow">
+        <div class="container mx-auto px-4 py-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    {% include 'news/partials/footer.html' %}
+    
+    <!-- JavaScript -->
+    <script src="{% static 'news/js/main.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

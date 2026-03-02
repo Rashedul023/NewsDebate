@@ -13,7 +13,6 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api-auth/', include('rest_framework.urls')),  # Browsable API login
     
-    # I'll add frontend URLs later
-    # path('', views.article_list, name='article-list'),
-    # path('article/<int:pk>/', views.article_detail, name='article-detail'),
+    path('', views.article_list, name='article-list'),
+    path('article/<int:pk>/', views.article_detail, name='article-detail'),
 ]

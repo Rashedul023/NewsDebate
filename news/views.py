@@ -10,6 +10,10 @@ from .models import Article
 from .serializers import ArticleSerializer, ArticleListSerializer
 from .filters import ArticleFilter
 
+from django.shortcuts import render
+from django.conf import settings
+
+
 class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
     """
     API endpoint for viewing political news articles.
@@ -111,3 +115,16 @@ class ArticleViewSet(viewsets.ReadOnlyModelViewSet):
         sources = Article.objects.values_list('source_name', flat=True)\
             .distinct().order_by('source_name')
         return Response(list(sources))
+
+#for frontend
+def article_list(request):
+    """Render the article list page"""
+    return render(request, 'news/article_list.html', {
+        'total_articles': Article.objects.count(),
+    })
+
+def article_detail(request, pk):
+    """Render the article detail page"""
+    return render(request, 'news/article_detail.html', {
+        'article_id': pk,
+    })

@@ -1,0 +1,47 @@
+<header class="bg-white shadow-lg sticky top-0 z-50">
+    <nav class="container mx-auto px-4">
+        <div class="flex justify-between items-center py-4">
+            <!-- Logo -->
+            <a href="/" class="flex items-center space-x-2">
+                <span class="text-3xl">📰</span>
+                <span class="text-2xl font-bold text-gray-800">
+                    News<span class="text-blue-600">Debate</span>
+                </span>
+            </a>
+            
+            <!-- Desktop Navigation -->
+            <div class="hidden md:flex items-center space-x-8">
+                <a href="/" class="nav-link {% if request.path == '/' %}text-blue-600 font-semibold{% endif %}">Home</a>
+                <a href="/api/articles/" class="nav-link" target="_blank">API</a>
+                <a href="/api/articles/stats/" class="nav-link" target="_blank">Stats</a>
+                <a href="/admin/" class="nav-link" target="_blank">Admin</a>
+            </div>
+            
+            <!-- Mobile Menu Button -->
+            <button id="mobile-menu-button" class="md:hidden text-gray-700 hover:text-blue-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobile-menu" class="hidden md:hidden pb-4">
+            <div class="flex flex-col space-y-2">
+                <a href="/" class="mobile-nav-link">Home</a>
+                <a href="/api/articles/" class="mobile-nav-link" target="_blank">API</a>
+                <a href="/api/articles/stats/" class="mobile-nav-link" target="_blank">Stats</a>
+                <a href="/admin/" class="mobile-nav-link" target="_blank">Admin</a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<style>
+    .nav-link {
+        @apply text-gray-700 hover:text-blue-600 transition font-medium;
+    }
+    .mobile-nav-link {
+        @apply block py-2 px-4 text-gray-700 hover:bg-gray-100 hover:text-blue-600 rounded transition;
+    }
+</style>

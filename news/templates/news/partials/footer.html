@@ -1,0 +1,46 @@
+<footer class="bg-gray-800 text-white mt-12">
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <!-- About -->
+            <div>
+                <h3 class="text-lg font-semibold mb-4">About</h3>
+                <p class="text-gray-300 text-sm">
+                    Your source news with AI-powered bias detection.
+                </p>
+            </div>
+            
+            <!-- Quick Links -->
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Links</h3>
+                <ul class="space-y-2 text-sm">
+                    <li><a href="/" class="text-gray-300 hover:text-white">Home</a></li>
+                    <li><a href="/api/articles/" class="text-gray-300 hover:text-white">API</a></li>
+                    <li><a href="/admin/" class="text-gray-300 hover:text-white">Admin</a></li>
+                </ul>
+            </div>
+            
+            <!-- Sources (will be populated by JS) -->
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Top Sources</h3>
+                <ul class="space-y-2 text-sm" id="footer-sources">
+                    <li class="text-gray-300">Loading...</li>
+                </ul>
+            </div>
+            
+            <!-- Info -->
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Info</h3>
+                <ul class="space-y-2 text-sm">
+                    <li class="text-gray-300" id="total-articles">Articles: --</li>
+                    <li class="text-gray-300">Bias Detection</li>
+                    <li class="text-gray-300">jango + Tailwind</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Copyright -->
+        <div class="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400">
+            <p>&copy; {% now "Y" %} NewsDebate. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
