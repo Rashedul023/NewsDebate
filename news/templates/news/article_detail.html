@@ -1,0 +1,78 @@
+{% extends 'news/base.html' %}
+
+{% block title %}Article Details - NewsDebate{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Back button -->
+    <a href="/" class="inline-flex items-center text-blue-600 hover:text-blue-800 mb-6">
+        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Back to News
+    </a>
+
+    <!-- Article Container -->
+    <div id="articleContainer" class="bg-white rounded-xl shadow-lg overflow-hidden">
+        <!-- Loading state -->
+        <div class="flex justify-center py-12">
+            <div class="spinner"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const articleId = {{ article_id }};
+    
+    async function loadArticle() {
+        try {
+            const article = await API.getArticle(articleId);
+            displayArticle(article);
+        } catch (error) {
+            UI.showError('articleContainer', 'Failed to load article', () => loadArticle());
+        }
+    }
+    
+    function displayArticle(article) {
+        const container = document.getElementById('articleContainer');
+        const biasClass = Utils.getBiasClass(article.bias_label);
+        const date = Utils.formatDate(article.published_at);
+        const biasDisplay = Utils.getBiasDisplay(article.bias_label);
+        
+        container.innerHTML = `
+            ${article.image_url ? 
+                `<img src="${article.image_url}" alt="${article.title}" 
+                      class="w-full h-96 object-cover"
+                      onerror="this.onerror=null; this.style.display='none';">` : ''
+            }
+            <div class="p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <span class="text-lg font-medium text-gray-600">${article.source_name}</span>
+                    <span class="px-4 py-2 rounded-full font-semibold ${biasClass}">
+                        ${biasDisplay} (${article.bias_score})
+                    </span>
+                </div>
+                
+                <h1 class="text-4xl font-bold mb-6">${article.title}</h1>
+                
+                <div class="prose prose-lg max-w-none mb-8">
+                    ${article.content || 'No content available'}
+                </div>
+                
+                <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                    <span class="text-gray-500">Published: ${date}</span>
+                    <a href="${article.url}" target="_blank" 
+                       class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                        Read Original Article →
+                    </a>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Load article on page load
+    document.addEventListener('DOMContentLoaded', loadArticle);
+</script>
+{% endblock %}
