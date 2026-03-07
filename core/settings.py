@@ -33,7 +33,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+# Custom User Model
+AUTH_USER_MODEL = 'users.User'
 # Application definition
 
 INSTALLED_APPS = [
@@ -233,6 +234,10 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
     'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata',
 }
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
 
 # CORS settings - Allow all origins in development
 CORS_ALLOW_ALL_ORIGINS = True  # Only for development!
