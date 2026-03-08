@@ -43,4 +43,5 @@ urlpatterns = [
     path('', home), 
     path('api-info/', api_info), 
     path('', include('news.urls')),  # API endpoints at /api/
+    path('api/auth/', include('users.urls')), 
 ]
