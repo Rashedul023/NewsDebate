@@ -3,6 +3,9 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.utils import timezone
 from django.core.mail import send_mail
 from django.conf import settings
+import random
+import string
+from datetime import timedelta
 
 class CustomUserManager(BaseUserManager):
     """Custom manager for User model with email as username"""
@@ -96,3 +99,100 @@ class User(AbstractBaseUser, PermissionsMixin):
         if not self.premium_until:
             return True  # Lifetime premium
         return self.premium_until > timezone.now()
+    
+
+
+class OTP(models.Model):
+    """One-Time Password for email verification"""
+    
+    PURPOSE_CHOICES = [
+        ('login', 'Login'),
+        ('signup', 'Sign Up'),
+        ('reset', 'Password Reset'),
+    ]
+    
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE,
+        related_name='otps'
+    )
+    code = models.CharField(max_length=6)
+    purpose = models.CharField(max_length=10, choices=PURPOSE_CHOICES, default='login')
+    
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    
+    # Track attempts for rate limiting
+    attempts = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'purpose', 'is_used']),
+            models.Index(fields=['expires_at']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.email} - {self.code} - {'Used' if self.is_used else 'Active'}"
+    
+    def save(self, *args, **kwargs):
+        """Set expiry if not provided"""
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=10)  # 10 minutes expiry
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_expired(self):
+        """Check if OTP has expired"""
+        return timezone.now() > self.expires_at
+    
+    @property
+    def is_valid(self):
+        """Check if OTP is valid (not used, not expired)"""
+        return not self.is_used and not self.is_expired
+    
+    @classmethod
+    def generate_code(cls):
+        """Generate a 6-digit OTP code"""
+        return ''.join(random.choices(string.digits, k=6))
+    
+    @classmethod
+    def create_for_user(cls, user, purpose='login'):
+        """Create a new OTP for user, invalidating previous ones"""
+        # Mark previous OTPs as used
+        cls.objects.filter(
+            user=user, 
+            purpose=purpose, 
+            is_used=False
+        ).update(is_used=True)
+        
+        # Create new OTP
+        return cls.objects.create(
+            user=user,
+            code=cls.generate_code(),
+            purpose=purpose
+        )
+    
+    def verify(self, code):
+        """Verify OTP code"""
+        self.attempts += 1
+        self.save(update_fields=['attempts'])
+        
+        if self.attempts > 5:
+            return False, "Too many attempts. Please request new OTP."
+        
+        if self.is_used:
+            return False, "OTP already used"
+        
+        if self.is_expired:
+            return False, "OTP expired"
+        
+        if self.code != code:
+            return False, "Invalid code"
+        
+        # Mark as used on success
+        self.is_used = True
+        self.save(update_fields=['is_used'])
+        
+        return True, "OTP verified successfully"
