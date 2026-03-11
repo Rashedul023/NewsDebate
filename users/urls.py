@@ -14,4 +14,12 @@ urlpatterns = [
     
     # Protected test endpoint
     path('test/', views.test_token, name='test_token'),
+
+    # User endpoints
+    path('profile/', views.profile, name='profile'),
+    path('logout/', views.logout, name='logout'),
+
+    # OTP endpoints
+    path('request-otp/', views.request_otp, name='request_otp'),
+    path('verify-otp/', views.verify_otp, name='verify_otp'),
 ]
