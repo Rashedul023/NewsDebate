@@ -3,8 +3,50 @@ from django.core.cache import cache
 from django.utils import timezone
 from datetime import timedelta
 from .models import OTP, User
-
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from django.conf import settings
 logger = logging.getLogger(__name__)
+
+class EmailService:
+    """Service for sending emails"""
+    
+    @staticmethod
+    def send_otp_email(user, otp_code, purpose='login'):
+        """Send OTP email to user"""
+        
+        context = {
+            'user': user,
+            'otp_code': otp_code,
+            'purpose': purpose,
+        }
+        
+        # Render HTML email
+        html_message = render_to_string('emails/otp_email.html', context)
+        plain_message = strip_tags(html_message)
+        
+        # Email subject based on purpose
+        subjects = {
+            'login': 'Login to NewsDebate',
+            'signup': 'Verify your NewsDebate account',
+            'reset': 'Reset your NewsDebate password',
+        }
+        subject = subjects.get(purpose, 'NewsDebate Verification Code')
+        
+        try:
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                html_message=html_message,
+                fail_silently=False,
+            )
+            return {'success': True, 'message': 'Email sent'}
+        except Exception as e:
+            logger.error(f"Email sending failed: {e}")
+            return {'success': False, 'message': 'Failed to send email'}
 
 class OTPRateLimiter:
     """Rate limiting for OTP requests"""

@@ -30,9 +30,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-@y_ud+m#-4w$93&b$jlce#pf_tvutm!4%nk6y6i9a9rv0wlo_9'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
@@ -283,3 +283,18 @@ CORS_ALLOW_ALL_ORIGINS = True  # Only for development!
 # CORS_ALLOWED_ORIGINS = [
 #     "https://mydomain.com",
 # ]
+
+
+# Email Configuration (Gmail)
+if DEBUG:
+    # Development - prints to console
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+else:
+    # Production - sends real emails
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = 'smtp.gmail.com'
+    EMAIL_PORT = 587
+    EMAIL_USE_TLS = True
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+    DEFAULT_FROM_EMAIL = 'NewsDebate <noreply@newsdebate.com>'
