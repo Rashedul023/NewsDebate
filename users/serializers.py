@@ -61,3 +61,25 @@ class TokenResponseSerializer(serializers.Serializer):
             'refresh': str(tokens['refresh']),
             'user': UserSerializer(user).data
         }
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating profile"""
+    
+    class Meta:
+        model = User
+        fields = ['full_name', 'receive_notifications']
+    
+    def update(self, instance, validated_data):
+        """Update user profile"""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
+class UserActivitySerializer(serializers.Serializer):
+    """Serializer for user activity"""
+    
+    total_votes = serializers.IntegerField()
+    total_comments = serializers.IntegerField()
+    member_since = serializers.DateTimeField()
+    last_active = serializers.DateTimeField()

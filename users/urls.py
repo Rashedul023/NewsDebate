@@ -22,4 +22,9 @@ urlpatterns = [
     # OTP endpoints
     path('request-otp/', views.request_otp, name='request_otp'),
     path('verify-otp/', views.verify_otp, name='verify_otp'),
+
+    # Additional endpoints
+    path('activity/', views.activity, name='activity'),
+    path('preferences/', views.change_preferences, name='preferences'),
+    path('delete-account/', views.delete_account, name='delete_account'),
 ]

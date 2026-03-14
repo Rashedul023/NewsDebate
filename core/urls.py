@@ -20,6 +20,8 @@ from django.urls import path, include
 from django.shortcuts import render
 from django.http import JsonResponse
 from datetime import datetime
+from django.conf import settings
+from django.conf.urls.static import static
 
 def home(request):
     return render(request, 'news/article_list.html')

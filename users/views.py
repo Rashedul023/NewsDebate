@@ -5,6 +5,8 @@ from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 import logging
+from django.db.models import Count
+# from news.models import ArticleVote, ArticleComment # i will use this later
 
 from .models import User
 from .serializers import (
@@ -163,4 +165,67 @@ def test_token(request):
             'is_premium': request.user.is_premium,
             'is_premium_active': request.user.is_premium_active,
         }
+    })
+
+
+"""I will use this after adding features"""
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def activity(request):
+#     """Get user activity summary"""
+    
+#     total_votes = ArticleVote.objects.filter(user=request.user).count()
+#     total_comments = ArticleComment.objects.filter(user=request.user).count()
+    
+#     return Response({
+#         'total_votes': total_votes,
+#         'total_comments': total_comments,
+#         'member_since': request.user.date_joined,
+#         'last_active': request.user.last_login or request.user.date_joined,
+#     })
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def activity(request):
+    """I will delete it after adding voting and comment features"""
+    return Response({
+        'total_votes': 0,  # Placeholder
+        'total_comments': 0,  # Placeholder
+        'member_since': request.user.date_joined,
+        'last_active': request.user.last_login or request.user.date_joined,
+    })
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_preferences(request):
+    """Change user preferences"""
+    
+    user = request.user
+    notifications = request.data.get('receive_notifications', user.receive_notifications)
+    
+    user.receive_notifications = notifications
+    user.save(update_fields=['receive_notifications'])
+    
+    return Response({
+        'message': 'Preferences updated',
+        'receive_notifications': user.receive_notifications
+    })
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    """Delete user account"""
+    
+    # Optional: Add confirmation
+    password = request.data.get('password')
+    # In OTP system, maybe send OTP for confirmation
+    
+    user = request.user
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+    
+    # i could also delete after 30 days, etc.
+    
+    return Response({
+        'message': 'Account deactivated successfully'
     })
