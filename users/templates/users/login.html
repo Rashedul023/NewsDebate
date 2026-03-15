@@ -1,0 +1,291 @@
+{% extends 'news/base.html' %}
+{% load static %}
+
+{% block title %}Login - NewsDebate{% endblock %}
+
+{% block extra_head %}
+<style>
+    .otp-input {
+        width: 3rem;
+        height: 3rem;
+        text-align: center;
+        font-size: 1.5rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        margin: 0 0.25rem;
+    }
+    .otp-input:focus {
+        border-color: #3b82f6;
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-[80vh] flex items-center justify-center">
+    <div class="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="text-5xl mb-4">📰</div>
+            <h1 class="text-3xl font-bold text-gray-900">Welcome to NewsDebate</h1>
+            <p class="text-gray-600 mt-2">Sign in with your email</p>
+        </div>
+        
+        <!-- Step 1: Email Form -->
+        <div id="step1" class="space-y-6">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                </label>
+                <input type="email" id="email" 
+                       class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                       placeholder="you@example.com"
+                       required>
+            </div>
+            
+            <button onclick="requestOTP()" 
+                    class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                Continue with Email
+            </button>
+            
+            <p class="text-sm text-gray-500 text-center">
+                We'll send a 6-digit code to your email
+            </p>
+        </div>
+        
+        <!-- Step 2: OTP Form (hidden initially) -->
+        <div id="step2" class="space-y-6 hidden">
+            <div class="text-center mb-4">
+                <p class="text-gray-600">Enter the code sent to</p>
+                <p id="displayEmail" class="font-semibold text-gray-900"></p>
+            </div>
+            
+            <div class="flex justify-center gap-2 mb-4">
+                <input type="text" maxlength="1" class="otp-input" id="otp1" onkeyup="moveToNext(this, 'otp2')">
+                <input type="text" maxlength="1" class="otp-input" id="otp2" onkeyup="moveToNext(this, 'otp3')">
+                <input type="text" maxlength="1" class="otp-input" id="otp3" onkeyup="moveToNext(this, 'otp4')">
+                <input type="text" maxlength="1" class="otp-input" id="otp4" onkeyup="moveToNext(this, 'otp5')">
+                <input type="text" maxlength="1" class="otp-input" id="otp5" onkeyup="moveToNext(this, 'otp6')">
+                <input type="text" maxlength="1" class="otp-input" id="otp6" onkeyup="moveToNext(this, null)">
+            </div>
+            
+            <button onclick="verifyOTP()" 
+                    class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition font-medium">
+                Verify & Login
+            </button>
+            
+            <div class="flex justify-between text-sm">
+                <button onclick="resendOTP()" class="text-blue-600 hover:text-blue-800">
+                    Resend Code
+                </button>
+                <button onclick="backToEmail()" class="text-gray-500 hover:text-gray-700">
+                    Use different email
+                </button>
+            </div>
+        </div>
+        
+        <!-- Loading Overlay -->
+        <div id="loading" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 text-center">
+                <div class="spinner mx-auto"></div>
+                <p class="mt-4 text-gray-600" id="loadingMessage">Processing...</p>
+            </div>
+        </div>
+        
+        <!-- Error/Success Message -->
+        <div id="message" class="mt-6 hidden"></div>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = '/api/auth';
+    let currentEmail = '';
+
+    // Add this function at the top of your script
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+
+
+
+    // Show loading overlay
+    function showLoading(message = 'Processing...') {
+        document.getElementById('loadingMessage').textContent = message;
+        document.getElementById('loading').classList.remove('hidden');
+    }
+
+    function hideLoading() {
+        document.getElementById('loading').classList.add('hidden');
+    }
+
+    function showMessage(text, type = 'error') {
+        const msgDiv = document.getElementById('message');
+        msgDiv.className = `mt-6 p-4 rounded-lg ${
+            type === 'error' ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'
+        }`;
+        msgDiv.textContent = text;
+        msgDiv.classList.remove('hidden');
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => msgDiv.classList.add('hidden'), 5000);
+    }
+
+    // Request OTP
+    async function requestOTP() {
+        const email = document.getElementById('email').value;
+        const csrftoken = getCookie('csrftoken');  // Get the token
+        const CSRF_TOKEN = '{{ csrf_token }}';
+        console.log('CSRF Token from template:', CSRF_TOKEN);  // Debug
+        
+        console.log('CSRF Token:', csrftoken);  // Debug: see if token exists
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/request-otp/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken,  // Add this header!
+                },
+                body: JSON.stringify({email, purpose: 'login'})
+            });
+            const data = await response.json();
+            
+            if (response.ok) {
+                currentEmail = email;
+                document.getElementById('displayEmail').textContent = email;
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+                document.getElementById('otp1').focus();
+                showMessage('Code sent! Check your email.', 'success');
+            } else {
+                showMessage(data.error || 'Failed to send code');
+            }
+        } catch (error) {
+            showMessage('Network error. Please try again.');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    // Move to next OTP input
+    function moveToNext(current, nextId) {
+        if (current.value.length === 1 && nextId) {
+            document.getElementById(nextId).focus();
+        }
+        
+        // If last input, auto-submit
+        if (current.id === 'otp6' && current.value.length === 1) {
+            verifyOTP();
+        }
+    }
+
+    // Verify OTP
+    async function verifyOTP() {
+        const code = [
+            document.getElementById('otp1').value,
+            document.getElementById('otp2').value,
+            document.getElementById('otp3').value,
+            document.getElementById('otp4').value,
+            document.getElementById('otp5').value,
+            document.getElementById('otp6').value
+        ].join('');
+        
+        if (code.length !== 6) {
+            showMessage('Please enter 6-digit code');
+            return;
+        }
+        
+        showLoading('Verifying...');
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/verify-otp/`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    email: currentEmail,
+                    code: code,
+                    purpose: 'login'
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                // Save tokens
+                localStorage.setItem('access_token', data.access);
+                localStorage.setItem('refresh_token', data.refresh);
+                
+                showMessage('Login successful! Redirecting...', 'success');
+                
+                // Redirect to home page
+                setTimeout(() => {
+                    window.location.href = '/';
+                }, 1000);
+            } else {
+                showMessage(data.error || 'Invalid code');
+                // Clear OTP inputs
+                for (let i = 1; i <= 6; i++) {
+                    document.getElementById(`otp${i}`).value = '';
+                }
+                document.getElementById('otp1').focus();
+            }
+        } catch (error) {
+            showMessage('Network error. Please try again.');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    async function resendOTP() {
+        if (!currentEmail) return;
+        
+        showLoading('Resending code...');
+        
+        try {
+            const response = await fetch(`${API_BASE_URL}/request-otp/`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({email: currentEmail, purpose: 'login'})
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok) {
+                showMessage('New code sent!', 'success');
+                // Clear OTP inputs
+                for (let i = 1; i <= 6; i++) {
+                    document.getElementById(`otp${i}`).value = '';
+                }
+                document.getElementById('otp1').focus();
+            } else {
+                showMessage(data.error || 'Failed to resend');
+            }
+        } catch (error) {
+            showMessage('Network error');
+        } finally {
+            hideLoading();
+        }
+    }
+
+    function backToEmail() {
+        document.getElementById('step2').classList.add('hidden');
+        document.getElementById('step1').classList.remove('hidden');
+        document.getElementById('email').value = '';
+        document.getElementById('email').focus();
+    }
+</script>
+{% endblock %}

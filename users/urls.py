@@ -27,4 +27,5 @@ urlpatterns = [
     path('activity/', views.activity, name='activity'),
     path('preferences/', views.change_preferences, name='preferences'),
     path('delete-account/', views.delete_account, name='delete_account'),
+    path('login/', views.login_page, name='login'),
 ]

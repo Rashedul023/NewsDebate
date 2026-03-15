@@ -43,10 +43,11 @@ class EmailService:
                 html_message=html_message,
                 fail_silently=False,
             )
+            logger.info(f"Email sent to {user.email}")
             return {'success': True, 'message': 'Email sent'}
         except Exception as e:
             logger.error(f"Email sending failed: {e}")
-            return {'success': False, 'message': 'Failed to send email'}
+            return {'success': False, 'message': str(e)}
 
 class OTPRateLimiter:
     """Rate limiting for OTP requests"""
@@ -98,25 +99,32 @@ class OTPService:
             # Create OTP
             otp = OTP.create_for_user(user, purpose)
             
+            # 🔴 FIX: ACTUALLY SEND THE EMAIL!
+            from .utils import EmailService  # Import at top normally
+            email_result = EmailService.send_otp_email(user, otp.code, purpose)
+            
+            if not email_result['success']:
+                logger.error(f"Email sending failed: {email_result['message']}")
+                return {'success': False, 'message': 'Failed to send email'}
+            
             limiter.increment()
             
-            logger.info(f"OTP generated for {email}: {otp.code}")
+            logger.info(f"OTP sent to {email}")
             
-            # In development, log the code for testing
-            if not created:
+            # In development, log the code for testing (still helpful)
+            if settings.DEBUG:
                 print(f"\n🔐 DEVELOPMENT: OTP for {email} is: {otp.code}\n")
             
             return {
                 'success': True,
-                'message': 'OTP sent successfully',
+                'message': f'OTP sent to {email}',
                 'user_exists': not created,
-                'otp': otp.code if not created else None,  # Only in dev!
             }
             
         except Exception as e:
             logger.error(f"OTP request failed for {email}: {e}")
             return {'success': False, 'message': 'Failed to send OTP'}
-    
+        
     @staticmethod
     def verify_otp(email, code, purpose='login'):
         """Verify OTP code"""

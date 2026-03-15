@@ -59,6 +59,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'core.middleware.DisableCSRFForAPI',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -78,9 +79,12 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.csrf',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'users.context_processors.auth_context',
             ],
             'builtins': [
                 'django.templatetags.static',
@@ -286,15 +290,17 @@ CORS_ALLOW_ALL_ORIGINS = True  # Only for development!
 
 
 # Email Configuration (Gmail)
-if DEBUG:
-    # Development - prints to console
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 465
+EMAIL_USE_SSL = True
+EMAIL_USE_TLS = False
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = 'NewsDebate <noreply@newsdebate.com>'
+
+# Optional: Add validation
+if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
+    print("⚠️ Email credentials missing! Check your .env file")
+    # Fallback to console for safety
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    # Production - sends real emails
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-    DEFAULT_FROM_EMAIL = 'NewsDebate <noreply@newsdebate.com>'

@@ -7,6 +7,8 @@ from django.contrib.auth import authenticate
 import logging
 from django.db.models import Count
 # from news.models import ArticleVote, ArticleComment # i will use this later
+from django.shortcuts import render
+from django.views.decorators.csrf import csrf_exempt
 
 from .models import User
 from .serializers import (
@@ -17,9 +19,13 @@ from .utils import OTPService
 
 logger = logging.getLogger(__name__)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def request_otp(request):
+    print(f"Request method: {request.method}")
+    print(f"Request headers: {dict(request.headers)}")
+    print(f"CSRF token in request: {request.META.get('CSRF_COOKIE')}")
     """
     Request OTP for login/signup
     
@@ -50,6 +56,7 @@ def request_otp(request):
             'error': result['message']
         }, status=status.HTTP_400_BAD_REQUEST)
 
+@csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def verify_otp(request):
@@ -229,3 +236,10 @@ def delete_account(request):
     return Response({
         'message': 'Account deactivated successfully'
     })
+
+
+
+
+def login_page(request):
+    """Render login page"""
+    return render(request, 'users/login.html')
