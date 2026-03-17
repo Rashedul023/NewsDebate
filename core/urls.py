@@ -22,6 +22,7 @@ from django.http import JsonResponse
 from datetime import datetime
 from django.conf import settings
 from django.conf.urls.static import static
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 def home(request):
     return render(request, 'news/article_list.html')
@@ -46,4 +47,9 @@ urlpatterns = [
     path('api-info/', api_info), 
     path('', include('news.urls')),  # API endpoints at /api/
     path('api/auth/', include('users.urls')), 
+    
+    # DRF Spectacular URLs
+    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),  # OpenAPI schema
+    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),  # Swagger UI
+    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),  # ReDoc (alternative)
 ]

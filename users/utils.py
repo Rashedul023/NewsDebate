@@ -99,8 +99,8 @@ class OTPService:
             # Create OTP
             otp = OTP.create_for_user(user, purpose)
             
-            # 🔴 FIX: ACTUALLY SEND THE EMAIL!
-            from .utils import EmailService  # Import at top normally
+            # FIX: ACTUALLY SEND THE EMAIL!
+            from .utils import EmailService  
             email_result = EmailService.send_otp_email(user, otp.code, purpose)
             
             if not email_result['success']:

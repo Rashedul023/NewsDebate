@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'corsheaders',
+    'drf_spectacular',
 
     'rest_framework_simplejwt.token_blacklist', 
     
@@ -270,10 +271,19 @@ REST_FRAMEWORK = {
         'rest_framework.filters.SearchFilter',
         'rest_framework.filters.OrderingFilter',
     ],
-    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema', 
     'DEFAULT_METADATA_CLASS': 'rest_framework.metadata.SimpleMetadata',
+}
 
-
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'NewsDebate API',
+    'DESCRIPTION': 'US Political News with Bias Detection',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': True,
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'persistAuthorization': True,  # Remember JWT token
+    },
 }
 
 AUTHENTICATION_BACKENDS = [

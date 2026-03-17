@@ -1,15 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="NewsDebate - US Political News with Bias Detection">
     <title>{% block title %}NewsDebate{% endblock %}</title>
     
-    <!-- Tailwind CSS via CDN -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Custom CSS -->
     {% load static %}
     <link rel="stylesheet" href="{% static 'news/css/style.css' %}">
     
@@ -17,7 +15,7 @@
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
     
-    <!-- Header/Navbar -->
+    <!-- Header -->
     {% include 'news/partials/header.html' %}
     
     <!-- Main Content -->
@@ -30,8 +28,10 @@
     <!-- Footer -->
     {% include 'news/partials/footer.html' %}
     
-    <!-- JavaScript -->
+    <!-- Core JavaScript -->
+    <script src="{% static 'news/js/auth.js' %}"></script>
     <script src="{% static 'news/js/main.js' %}"></script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

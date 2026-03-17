@@ -11,15 +11,13 @@
             
             <!-- Desktop Navigation -->
             <div class="hidden md:flex items-center space-x-8">
-                <a href="/" class="nav-link">Home</a>
-                <a href="/api/articles/" class="nav-link" target="_blank">API</a>
+                <a href="/" class="nav-link hover:text-blue-600 transition">Home</a>
+                <a href="/api/docs/" class="nav-link hover:text-blue-600 transition" target="_blank">API</a>
                 
-                {% if user.is_authenticated %}
-                    <span class="text-gray-600">Welcome, {{ user.full_name|default:user.email }}</span>
-                    <a href="/api/auth/logout/" class="nav-link">Logout</a>
-                {% else %}
-                    <a href="/api/auth/login/" class="nav-link">Login</a>
-                {% endif %}
+                <!-- Dynamic Auth Section -->
+                <div id="auth-section" class="flex items-center space-x-4">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
             
             <!-- Mobile Menu Button -->
@@ -35,12 +33,88 @@
             <div class="flex flex-col space-y-2">
                 <a href="/" class="mobile-nav-link">Home</a>
                 <a href="/api/articles/" class="mobile-nav-link" target="_blank">API</a>
-                <a href="/api/articles/stats/" class="mobile-nav-link" target="_blank">Stats</a>
-                <a href="/admin/" class="mobile-nav-link" target="_blank">Admin</a>
+                <div id="mobile-auth-section" class="flex flex-col space-y-2 pt-2 border-t">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
         </div>
     </nav>
 </header>
+
+<!-- Add auth.js before using it -->
+<script src="{% static 'news/js/auth.js' %}"></script>
+<script>
+    // Function to update navbar based on auth state
+    function updateNavbar() {
+        const authSection = document.getElementById('auth-section');
+        const mobileAuthSection = document.getElementById('mobile-auth-section');
+        
+        if (!authSection || !mobileAuthSection) return;
+        
+        if (Auth.isAuthenticated()) {
+            const userName = Auth.getUserDisplayName();
+            
+            // Desktop view
+            authSection.innerHTML = `
+                <span class="text-gray-700">Welcome, <span class="font-semibold">${userName}</span></span>
+                <button onclick="handleLogout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm">
+                    Logout
+                </button>
+            `;
+            
+            // Mobile view
+            mobileAuthSection.innerHTML = `
+                <span class="text-gray-700 py-2">Welcome, ${userName}</span>
+                <button onclick="handleLogout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-left w-full">
+                    Logout
+                </button>
+            `;
+        } else {
+            // Not logged in
+            authSection.innerHTML = `
+                <a href="/api/auth/login/" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-sm">
+                    Login
+                </a>
+            `;
+            
+            mobileAuthSection.innerHTML = `
+                <a href="/api/auth/login/" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition text-center">
+                    Login
+                </a>
+            `;
+        }
+    }
+
+    // Handle logout
+    async function handleLogout() {
+        await Auth.logout();
+        updateNavbar();
+        
+        // Show message
+        alert('Logged out successfully!');
+        
+        // Redirect to home
+        window.location.href = '/';
+    }
+
+    // Update navbar on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        updateNavbar();
+        
+        // Mobile menu toggle
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        
+        if (menuButton && mobileMenu) {
+            menuButton.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+    });
+
+    // Update navbar when auth state changes
+    window.addEventListener('auth-change', updateNavbar);
+</script>
 
 <style>
     .nav-link {

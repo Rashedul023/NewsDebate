@@ -4,6 +4,7 @@
 {% block title %}Login - NewsDebate{% endblock %}
 
 {% block extra_head %}
+<script src="{% static 'news/js/auth.js' %}"></script>
 <style>
     .otp-input {
         width: 3rem;
@@ -99,11 +100,11 @@
     </div>
 </div>
 
+
 <script>
     const API_BASE_URL = '/api/auth';
     let currentEmail = '';
 
-    // Add this function at the top of your script
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -120,9 +121,6 @@
     }
 
 
-
-
-    // Show loading overlay
     function showLoading(message = 'Processing...') {
         document.getElementById('loadingMessage').textContent = message;
         document.getElementById('loading').classList.remove('hidden');
@@ -193,7 +191,7 @@
         }
     }
 
-    // Verify OTP
+   // Verify OTP
     async function verifyOTP() {
         const code = [
             document.getElementById('otp1').value,
@@ -225,9 +223,17 @@
             const data = await response.json();
             
             if (response.ok) {
-                // Save tokens
-                localStorage.setItem('access_token', data.access);
-                localStorage.setItem('refresh_token', data.refresh);
+                if (window.Auth) {
+                    Auth.login({
+                        access: data.access,
+                        refresh: data.refresh
+                    }, data.user);
+                } else {
+                    // Fallback if Auth not loaded
+                    localStorage.setItem('access_token', data.access);
+                    localStorage.setItem('refresh_token', data.refresh);
+                    localStorage.setItem('user_data', JSON.stringify(data.user));
+                }
                 
                 showMessage('Login successful! Redirecting...', 'success');
                 
@@ -244,6 +250,7 @@
                 document.getElementById('otp1').focus();
             }
         } catch (error) {
+            console.error('Verification error:', error);
             showMessage('Network error. Please try again.');
         } finally {
             hideLoading();
