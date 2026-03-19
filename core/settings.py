@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     # Local apps
     'news',
     'users',
+    'interactions',
 ]
 
 MIDDLEWARE = [

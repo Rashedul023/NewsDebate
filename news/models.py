@@ -31,6 +31,9 @@ class Article(models.Model):
         validators=[MinValueValidator(-1.0), MaxValueValidator(1.0)],
         help_text="Bias score from -1 (left) to +1 (right). Default 0 = neutral."
     )
+
+    upvote_count = models.PositiveIntegerField(default=0)
+    comment_count = models.PositiveIntegerField(default=0)
     
     # Metadata
     fetched_at = models.DateTimeField(auto_now_add=True)
@@ -59,3 +62,13 @@ class Article(models.Model):
         if self.source_name and len(self.source_name) > 200:
             self.source_name = self.source_name[:200]
         super().save(*args, **kwargs)
+        
+    def update_upvote_count(self):
+        """Update upvote count"""
+        self.upvote_count = self.upvotes.count()
+        self.save(update_fields=['upvote_count'])
+    
+    def update_comment_count(self):
+        """Update comment count"""
+        self.comment_count = self.comments.filter(is_active=True).count()
+        self.save(update_fields=['comment_count'])

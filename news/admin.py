@@ -3,7 +3,7 @@ from .models import Article
 
 @admin.register(Article)
 class ArticleAdmin(admin.ModelAdmin):
-    list_display = ['title', 'source_name', 'bias_label', 'bias_score', 'published_at']
+    list_display = ['title', 'source_name', 'bias_label', 'bias_score', 'published_at','upvote_count',  'comment_count',]
     list_filter = ['bias_label', 'source_name', 'published_at']
     search_fields = ['title', 'content']
     date_hierarchy = 'published_at'
