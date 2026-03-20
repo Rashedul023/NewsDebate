@@ -47,6 +47,7 @@ urlpatterns = [
     path('api-info/', api_info), 
     path('', include('news.urls')),  # API endpoints at /api/
     path('api/auth/', include('users.urls')), 
+    path('api/', include('interactions.urls')),
     
     # DRF Spectacular URLs
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),  # OpenAPI schema
