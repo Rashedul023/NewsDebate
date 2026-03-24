@@ -220,7 +220,7 @@ def comment_replies(request, comment_id):
 
 # ========== Ad Views ==========
 @api_view(['GET'])
-@permission_classes([permissions.IsAuthenticatedOrReadOnly])
+@permission_classes([permissions.AllowAny])
 def random_ad(request):
     """
     Get a random active ad.

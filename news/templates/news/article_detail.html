@@ -1,6 +1,46 @@
 {% extends 'news/base.html' %}
+{% load static %}
 
 {% block title %}Article Details - NewsDebate{% endblock %}
+
+{% block extra_head %}
+<style>
+    .upvote-btn {
+        transition: all 0.2s;
+    }
+    .upvote-btn.active {
+        color: #dc2626;
+        animation: heartBeat 0.3s;
+    }
+    @keyframes heartBeat {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.2); }
+        100% { transform: scale(1); }
+    }
+    .comment {
+        transition: background-color 0.2s;
+    }
+    .comment:hover {
+        background-color: #f9fafb;
+    }
+    .ad-banner {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="max-w-4xl mx-auto">
@@ -13,25 +53,54 @@
     </a>
 
     <!-- Article Container -->
-    <div id="articleContainer" class="bg-white rounded-xl shadow-lg overflow-hidden">
+    <div id="articleContainer" class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <!-- Loading state -->
         <div class="flex justify-center py-12">
             <div class="spinner"></div>
+            <p class="ml-4 text-gray-600">Loading article...</p>
         </div>
     </div>
+    
+    <!-- Ad Banner -->
+    <div id="adContainer" class="mb-8 hidden"></div>
+    
+    <!-- Upvote Section -->
+    <div id="upvoteSection" class="bg-white rounded-xl shadow-lg p-6 mb-8 hidden"></div>
+    
+    <!-- Comments Section -->
+    <div id="commentsSection" class="bg-white rounded-xl shadow-lg p-6 hidden"></div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+{# DO NOT redeclare Auth, API, Utils, UI here - they're already in base.html #}
+
 <script>
     const articleId = {{ article_id }};
     
+    // ========== Article Functions ==========
     async function loadArticle() {
         try {
+            // Use the global API object (from main.js)
             const article = await API.getArticle(articleId);
             displayArticle(article);
+            
+            // Load upvote status if logged in
+            if (Auth.isAuthenticated()) {
+                loadUpvoteStatus();
+            } else {
+                showUpvoteSection(false, article.upvote_count || 0);
+            }
+            
+            // Load comments
+            loadComments();
+            
+            // Load ad
+            loadAd();
+            
         } catch (error) {
-            UI.showError('articleContainer', 'Failed to load article', () => loadArticle());
+            console.error('Error loading article:', error);
+            UI.showError('articleContainer', 'Failed to load article', loadArticle);
         }
     }
     
@@ -49,13 +118,13 @@
             }
             <div class="p-8">
                 <div class="flex items-center justify-between mb-6">
-                    <span class="text-lg font-medium text-gray-600">${article.source_name}</span>
+                    <span class="text-lg font-medium text-gray-600">${Utils.escapeHtml ? Utils.escapeHtml(article.source_name) : article.source_name}</span>
                     <span class="px-4 py-2 rounded-full font-semibold ${biasClass}">
                         ${biasDisplay} (${article.bias_score})
                     </span>
                 </div>
                 
-                <h1 class="text-4xl font-bold mb-6">${article.title}</h1>
+                <h1 class="text-4xl font-bold mb-6">${Utils.escapeHtml ? Utils.escapeHtml(article.title) : article.title}</h1>
                 
                 <div class="prose prose-lg max-w-none mb-8">
                     ${article.content || 'No content available'}
@@ -72,7 +141,256 @@
         `;
     }
     
-    // Load article on page load
+    // ========== Upvote Functions ==========
+    async function loadUpvoteStatus() {
+        try {
+            const response = await fetch(`/api/articles/${articleId}/my-upvote/`, {
+                headers: Auth.getAuthHeaders()
+            });
+            const data = await response.json();
+            showUpvoteSection(data.has_upvoted, data.upvote_count);
+        } catch (error) {
+            console.error('Error loading upvote status:', error);
+        }
+    }
+    
+    function showUpvoteSection(hasUpvoted, count) {
+        const section = document.getElementById('upvoteSection');
+        if (!section) return;
+        section.classList.remove('hidden');
+        
+        section.innerHTML = `
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <button onclick="toggleUpvote()" 
+                            class="upvote-btn flex items-center space-x-2 px-6 py-3 rounded-lg transition
+                            ${hasUpvoted ? 'active bg-red-50' : 'bg-gray-100 hover:bg-gray-200'}">
+                        <svg class="w-6 h-6 ${hasUpvoted ? 'text-red-600' : 'text-gray-600'}" 
+                             fill="${hasUpvoted ? 'currentColor' : 'none'}" 
+                             stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                                  d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                        </svg>
+                        <span class="font-medium ${hasUpvoted ? 'text-red-600' : 'text-gray-700'}">
+                            ${hasUpvoted ? 'Upvoted' : 'Upvote'}
+                        </span>
+                    </button>
+                    <span class="text-gray-600">
+                        <span class="font-bold text-xl">${count}</span> upvotes
+                    </span>
+                </div>
+                
+                ${!Auth.isAuthenticated() ? 
+                    `<a href="/api/auth/login/" class="text-blue-600 hover:underline">
+                        Login to upvote
+                     </a>` : ''}
+            </div>
+        `;
+    }
+    
+    window.toggleUpvote = async function() {
+        if (!Auth.isAuthenticated()) {
+            window.location.href = '/api/auth/login/';
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/articles/${articleId}/upvote/`, {
+                method: 'POST',
+                headers: Auth.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                loadUpvoteStatus();
+            } else {
+                alert('Failed to update upvote');
+            }
+        } catch (error) {
+            console.error('Error toggling upvote:', error);
+        }
+    };
+    
+    // ========== Comment Functions ==========
+    async function loadComments() {
+        try {
+            const response = await fetch(`/api/articles/${articleId}/comments/`);
+            const data = await response.json();
+            showComments(data.results || []);
+        } catch (error) {
+            console.error('Error loading comments:', error);
+        }
+    }
+    
+    function showComments(comments) {
+        const section = document.getElementById('commentsSection');
+        if (!section) return;
+        section.classList.remove('hidden');
+        
+        let commentsHtml = `
+            <h3 class="text-2xl font-bold mb-6">Comments (${comments.length})</h3>
+        `;
+        
+        if (comments.length === 0) {
+            commentsHtml += '<p class="text-gray-500 text-center py-8">No comments yet. Be the first to comment!</p>';
+        } else {
+            commentsHtml += '<div class="space-y-6">';
+            comments.forEach(comment => {
+                commentsHtml += createCommentHtml(comment);
+            });
+            commentsHtml += '</div>';
+        }
+        
+        // Add comment form
+        commentsHtml += `
+            <div class="mt-8 pt-6 border-t">
+                ${Auth.isAuthenticated() ? `
+                    <h4 class="text-lg font-semibold mb-4">Add a Comment</h4>
+                    <textarea id="commentInput" rows="3" 
+                              class="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500"
+                              placeholder="Share your thoughts..."></textarea>
+                    <div class="flex justify-end mt-2">
+                        <button onclick="postComment()" 
+                                class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                            Post Comment
+                        </button>
+                    </div>
+                ` : `
+                    <p class="text-center text-gray-600">
+                        <a href="/api/auth/login/" class="text-blue-600 hover:underline">Login</a> to join the discussion.
+                    </p>
+                `}
+            </div>
+        `;
+        
+        section.innerHTML = commentsHtml;
+    }
+    
+    function createCommentHtml(comment) {
+        const date = new Date(comment.created_at).toLocaleDateString();
+        const user = Auth.getUser();
+        const canEdit = user && user.id === comment.user;
+        
+        return `
+            <div class="comment p-4 rounded-lg border">
+                <div class="flex items-center justify-between mb-2">
+                    <div>
+                        <span class="font-semibold">${comment.user_name || comment.user_email}</span>
+                        <span class="text-sm text-gray-500 ml-2">${date}</span>
+                    </div>
+                    ${canEdit ? `
+                        <div class="space-x-2">
+                            <button onclick="deleteComment(${comment.id})" class="text-red-600 hover:underline text-sm">Delete</button>
+                        </div>
+                    ` : ''}
+                </div>
+                <p class="text-gray-700">${comment.content}</p>
+            </div>
+        `;
+    }
+    
+    window.postComment = async function() {
+        const content = document.getElementById('commentInput').value.trim();
+        if (!content) return;
+        
+        try {
+            const response = await fetch(`/api/articles/${articleId}/comments/`, {
+                method: 'POST',
+                headers: Auth.getAuthHeaders(),
+                body: JSON.stringify({ content })
+            });
+            
+            if (response.ok) {
+                document.getElementById('commentInput').value = '';
+                loadComments();
+            } else {
+                const data = await response.json();
+                alert(data.error || 'Failed to post comment');
+            }
+        } catch (error) {
+            console.error('Error posting comment:', error);
+            alert('Network error. Please try again.');
+        }
+    };
+    
+    window.deleteComment = async function(commentId) {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+        
+        try {
+            const response = await fetch(`/api/comments/${commentId}/`, {
+                method: 'DELETE',
+                headers: Auth.getAuthHeaders()
+            });
+            
+            if (response.ok) {
+                loadComments();
+            } else {
+                alert('Failed to delete comment');
+            }
+        } catch (error) {
+            console.error('Error deleting comment:', error);
+        }
+    };
+    
+    // ========== Ad Functions ==========
+    async function loadAd() {
+        try {
+            const response = await fetch('/api/ads/random/', {
+                headers: Auth.getAuthHeaders()
+            });
+            const data = await response.json();
+            
+            if (data.show_ad && data.ad) {
+                showAd(data.ad);
+            }
+        } catch (error) {
+            console.error('Error loading ad:', error);
+        }
+    }
+    
+    function showAd(ad) {
+        const container = document.getElementById('adContainer');
+        if (!container) return;
+        container.classList.remove('hidden');
+        
+        container.innerHTML = `
+            <div class="ad-banner rounded-xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <a href="${ad.link_url}" target="_blank" onclick="trackAdClick(${ad.id})" class="block">
+                    <div class="flex items-center p-4 text-white">
+                        ${ad.image_url ? 
+                            `<img src="${ad.image_url}" alt="${ad.title}" 
+                                  class="w-16 h-16 object-cover rounded-lg mr-4 bg-white p-1"
+                                  onerror="this.onerror=null; this.src='';">` : 
+                            `<div class="w-16 h-16 bg-white bg-opacity-20 rounded-lg mr-4 flex items-center justify-center">
+                                <span class="text-2xl">📢</span>
+                             </div>`
+                        }
+                        <div class="flex-1">
+                            <h4 class="font-bold text-lg">${ad.title}</h4>
+                            <p class="text-sm opacity-90">${ad.description || 'Check out my work'}</p>
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            <span class="bg-white text-blue-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-opacity-90 transition">
+                                Visit →
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        `;
+    }
+    
+    window.trackAdClick = async function(adId) {
+        try {
+            await fetch(`/api/ads/${adId}/click/`, {
+                method: 'POST',
+                headers: Auth.getAuthHeaders()
+            });
+        } catch (error) {
+            console.error('Error tracking ad click:', error);
+        }
+    };
+    
+    // Initialize
     document.addEventListener('DOMContentLoaded', loadArticle);
 </script>
 {% endblock %}

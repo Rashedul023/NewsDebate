@@ -3,29 +3,26 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-import logging
-from django.db.models import Count
-# from news.models import ArticleVote, ArticleComment # i will use this later
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+import logging
 
 from .models import User
 from .serializers import (
     OTPRequestSerializer, OTPVerifySerializer,
-    UserSerializer, TokenResponseSerializer
+    UserSerializer
 )
 from .utils import OTPService
 
 logger = logging.getLogger(__name__)
 
+
+# ========== OTP Authentication Views ==========
+
 @csrf_exempt
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def request_otp(request):
-    print(f"Request method: {request.method}")
-    print(f"Request headers: {dict(request.headers)}")
-    print(f"CSRF token in request: {request.META.get('CSRF_COOKIE')}")
     """
     Request OTP for login/signup
     
@@ -35,6 +32,11 @@ def request_otp(request):
         "purpose": "login"  # or "signup", "reset"
     }
     """
+    # Debug prints (remove in production)
+    print(f"Request method: {request.method}")
+    print(f"Request headers: {dict(request.headers)}")
+    print(f"CSRF token in request: {request.META.get('CSRF_COOKIE')}")
+    
     serializer = OTPRequestSerializer(data=request.data)
     
     if not serializer.is_valid():
@@ -55,6 +57,7 @@ def request_otp(request):
         return Response({
             'error': result['message']
         }, status=status.HTTP_400_BAD_REQUEST)
+
 
 @csrf_exempt
 @api_view(['POST'])
@@ -91,10 +94,6 @@ def verify_otp(request):
     
     # Generate JWT tokens
     refresh = RefreshToken.for_user(user)
-    tokens = {
-        'access': refresh.access_token,
-        'refresh': refresh,
-    }
     
     # Log login
     logger.info(f"User logged in: {user.email}")
@@ -115,6 +114,9 @@ def verify_otp(request):
     
     return Response(response_data, status=status.HTTP_200_OK)
 
+
+# ========== JWT Token Management ==========
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def logout(request):
@@ -128,11 +130,19 @@ def logout(request):
     """
     try:
         refresh_token = request.data.get('refresh')
+        if not refresh_token:
+            return Response(
+                {'error': 'Refresh token required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         token = RefreshToken(refresh_token)
         token.blacklist()
         return Response({'message': 'Logged out successfully'})
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ========== User Profile Views ==========
 
 @api_view(['GET', 'PUT', 'PATCH'])
 @permission_classes([IsAuthenticated])
@@ -159,10 +169,85 @@ def profile(request):
     
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+# ========== User Activity & Preferences ==========
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def activity(request):
+    """
+    Get user activity summary
+    
+    GET /api/auth/activity/
+    """
+    # Placeholder until voting and comments are fully implemented
+    return Response({
+        'total_upvotes': 0,  # Will be replaced with actual count
+        'total_comments': 0,  # Will be replaced with actual count
+        'member_since': request.user.date_joined,
+        'last_active': request.user.last_login or request.user.date_joined,
+    })
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def change_preferences(request):
+    """
+    Change user preferences
+    
+    POST /api/auth/preferences/
+    {
+        "receive_notifications": true
+    }
+    """
+    user = request.user
+    notifications = request.data.get('receive_notifications', user.receive_notifications)
+    
+    user.receive_notifications = notifications
+    user.save(update_fields=['receive_notifications'])
+    
+    return Response({
+        'message': 'Preferences updated',
+        'receive_notifications': user.receive_notifications
+    })
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_account(request):
+    """
+    Delete (deactivate) user account
+    
+    DELETE /api/auth/delete-account/
+    """
+    user = request.user
+    user.is_active = False
+    user.save(update_fields=['is_active'])
+    
+    # Optional: Blacklist current refresh token
+    try:
+        auth_header = request.headers.get('Authorization', '')
+        if auth_header.startswith('Bearer '):
+            # Token blacklisting would go here
+            pass
+    except:
+        pass
+    
+    return Response({
+        'message': 'Account deactivated successfully'
+    })
+
+
+# ========== Test Endpoints ==========
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def test_token(request):
-    """Test endpoint to verify JWT authentication"""
+    """
+    Test endpoint to verify JWT authentication
+    
+    GET /api/auth/test/
+    """
     return Response({
         'message': 'Authentication successful!',
         'user': {
@@ -175,70 +260,7 @@ def test_token(request):
     })
 
 
-"""I will use this after adding features"""
-# @api_view(['GET'])
-# @permission_classes([IsAuthenticated])
-# def activity(request):
-#     """Get user activity summary"""
-    
-#     total_votes = ArticleVote.objects.filter(user=request.user).count()
-#     total_comments = ArticleComment.objects.filter(user=request.user).count()
-    
-#     return Response({
-#         'total_votes': total_votes,
-#         'total_comments': total_comments,
-#         'member_since': request.user.date_joined,
-#         'last_active': request.user.last_login or request.user.date_joined,
-#     })
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def activity(request):
-    """I will delete it after adding voting and comment features"""
-    return Response({
-        'total_votes': 0,  # Placeholder
-        'total_comments': 0,  # Placeholder
-        'member_since': request.user.date_joined,
-        'last_active': request.user.last_login or request.user.date_joined,
-    })
-
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def change_preferences(request):
-    """Change user preferences"""
-    
-    user = request.user
-    notifications = request.data.get('receive_notifications', user.receive_notifications)
-    
-    user.receive_notifications = notifications
-    user.save(update_fields=['receive_notifications'])
-    
-    return Response({
-        'message': 'Preferences updated',
-        'receive_notifications': user.receive_notifications
-    })
-
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def delete_account(request):
-    """Delete user account"""
-    
-    # Optional: Add confirmation
-    password = request.data.get('password')
-    # In OTP system, maybe send OTP for confirmation
-    
-    user = request.user
-    user.is_active = False
-    user.save(update_fields=['is_active'])
-    
-    # i could also delete after 30 days, etc.
-    
-    return Response({
-        'message': 'Account deactivated successfully'
-    })
-
-
-
+# ========== Frontend Page Views ==========
 
 def login_page(request):
     """Render login page"""
