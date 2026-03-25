@@ -76,7 +76,7 @@ const Auth = {
         if (!refresh) return false;
 
         try {
-            const response = await fetch('/api/auth/refresh/', {
+            const response = await fetch('/api/auth/token/refresh/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ refresh })
