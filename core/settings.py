@@ -18,6 +18,7 @@ load_dotenv()
 
 from pathlib import Path
 import logging.config
+import stripe
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     'news',
     'users',
     'interactions',
+    'payments',
 ]
 
 MIDDLEWARE = [
@@ -315,3 +317,11 @@ if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
     print("⚠️ Email credentials missing! Check your .env file")
     # Fallback to console for safety
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# Stripe settings
+STRIPE_PUBLISHABLE_KEY = os.getenv('STRIPE_PUBLISHABLE_KEY')
+STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY')
+stripe.api_key = STRIPE_SECRET_KEY
+
+PREMIUM_PRICE_AMOUNT = 500  # $5
+PREMIUM_PRICE_CURRENCY = 'usd'
