@@ -117,3 +117,33 @@ def premium_status(request):
         'is_premium': user.is_premium_active,
         'premium_until': user.premium_until,
     })
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def stripe_webhook(request):
+    """Handle Stripe webhook events"""
+    payload = request.body
+    
+    try:
+        event = json.loads(payload)
+    except:
+        return JsonResponse({'error': 'Invalid payload'}, status=400)
+    
+    # Handle successful payment
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        user_id = session.get('client_reference_id')
+        
+        if user_id:
+            from users.models import User
+            try:
+                user = User.objects.get(id=user_id)
+                user.is_premium = True
+                user.premium_until = timezone.now() + timedelta(days=30)
+                user.save()
+                logger.info(f"✅ User {user.email} upgraded to premium!")
+            except User.DoesNotExist:
+                logger.error(f"User {user_id} not found")
+    
+    return JsonResponse({'status': 'ok'})
