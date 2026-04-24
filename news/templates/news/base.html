@@ -33,6 +33,34 @@
     <script src="{% static 'news/js/main.js' %}"></script>
     <script src="{% static 'news/js/news-grid.js' %}"></script>
     
+    <!-- ✅ ADD THIS SECTION HERE -->
+    <script>
+        // Listen for auth changes (login/logout/premium update)
+        window.addEventListener('auth-change', function() {
+            console.log('🔄 Auth state changed, refreshing UI...');
+            
+            // Refresh stats if stats function exists (home page)
+            if (typeof loadStats === 'function') {
+                loadStats();
+            }
+            
+            // Refresh ads if ad function exists (article page)
+            if (typeof loadAd === 'function') {
+                loadAd();
+            }
+            
+            // Refresh upvote status if on article page
+            if (typeof loadUpvoteStatus === 'function') {
+                loadUpvoteStatus();
+            }
+            
+            // Refresh comments if on article page
+            if (typeof loadComments === 'function') {
+                loadComments();
+            }
+        });
+    </script>
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>

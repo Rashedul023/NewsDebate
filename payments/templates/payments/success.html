@@ -6,7 +6,39 @@
 <div class="max-w-2xl mx-auto text-center py-16">
     <div class="text-6xl mb-4">🎉</div>
     <h1 class="text-3xl font-bold mb-4">Payment Successful!</h1>
-    <p class="text-xl text-gray-600 mb-8">Thank you for upgrading!</p>
+    <p class="text-xl text-gray-600 mb-8">You are now a Premium member!</p>
     <a href="/" class="bg-blue-600 text-white px-6 py-3 rounded-lg">Go Home</a>
 </div>
+
+<script>
+    // 🔑 CRITICAL: Refresh user data from server
+    async function refreshUserData() {
+        const token = localStorage.getItem('access_token');
+        if (!token) return;
+        
+        try {
+            const response = await fetch('/api/auth/profile/', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const userData = await response.json();
+                // Update localStorage with fresh user data
+                localStorage.setItem('user_data', JSON.stringify(userData));
+                console.log('✅ User data refreshed:', userData);
+                
+                // Trigger auth-change event to update navbar
+                window.dispatchEvent(new Event('auth-change'));
+            }
+        } catch (error) {
+            console.error('Failed to refresh user data:', error);
+        }
+    }
+    
+    // Refresh user data immediately
+    refreshUserData();
+</script>
 {% endblock %}

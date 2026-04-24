@@ -1,4 +1,3 @@
-# payments/views.py
 import stripe
 from django.conf import settings
 from django.shortcuts import render
@@ -81,28 +80,54 @@ def payment_cancel(request):
 @csrf_exempt
 @require_http_methods(["POST"])
 def stripe_webhook(request):
-    """Handle Stripe webhook events"""
+    """Handle Stripe webhook events with signature verification"""
     payload = request.body
+    sig_header = request.META.get('HTTP_STRIPE_SIGNATURE')
+    webhook_secret = settings.STRIPE_WEBHOOK_SECRET
+    
+    logger.info(f"Webhook received - Signature header present: {bool(sig_header)}")
     
     try:
-        event = json.loads(payload)
-    except:
+        # Verify webhook signature if secret is set
+        if webhook_secret:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, webhook_secret
+            )
+            logger.info(f"✅ Webhook signature verified: {event['type']}")
+        else:
+            # Fallback for testing (no verification)
+            event = json.loads(payload)
+            logger.warning("⚠️ Webhook signature not verified (no secret)")
+            
+    except ValueError as e:
+        logger.error(f"Invalid payload: {e}")
         return JsonResponse({'error': 'Invalid payload'}, status=400)
+    except stripe.error.SignatureVerificationError as e:
+        logger.error(f"Signature verification failed: {e}")
+        return JsonResponse({'error': 'Invalid signature'}, status=400)
     
+    # Handle the event
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         user_id = session.get('client_reference_id')
+        logger.info(f"Checkout completed - User ID: {user_id}")
         
         if user_id:
             from users.models import User
             try:
                 user = User.objects.get(id=user_id)
+                from django.utils import timezone
+                from datetime import timedelta
+                
                 user.is_premium = True
                 user.premium_until = timezone.now() + timedelta(days=30)
                 user.save()
                 logger.info(f"✅ User {user.email} upgraded to premium!")
+                
             except User.DoesNotExist:
                 logger.error(f"User {user_id} not found")
+        else:
+            logger.error("No client_reference_id in session")
     
     return JsonResponse({'status': 'ok'})
 
