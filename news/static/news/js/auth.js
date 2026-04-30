@@ -1,7 +1,9 @@
 const Auth = {
-    // Check if user is logged in
+    // Check if user is logged in with VALID token
     isAuthenticated() {
-        return !!this.getToken();
+        const token = this.getToken();
+        if (!token) return false;
+        return this.isTokenValid();  // ← CRITICAL: Check expiration!
     },
 
     // Get access token
@@ -20,13 +22,50 @@ const Auth = {
         return userData ? JSON.parse(userData) : null;
     },
 
+    //Check if token is expired
+    isTokenValid() {
+        const token = this.getToken();
+        if (!token) return false;
+        
+        try {
+            // Decode JWT token (it's base64 encoded)
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const exp = payload.exp * 1000; // Convert to milliseconds
+            const now = Date.now();
+            
+            if (now >= exp) {
+                console.log('⏰ Token expired, clearing session');
+                this.clearSession();
+                return false;
+            }
+            return true;
+        } catch (error) {
+            console.error('Token decode error:', error);
+            this.clearSession();
+            return false;
+        }
+    },
+
+    // Clear session without API call (for expired tokens)
+    clearSession() {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('user_data');
+        window.dispatchEvent(new Event('auth-change'));
+    },
+
     // Get auth headers for API requests
     getAuthHeaders() {
         const token = this.getToken();
-        return token ? {
+        if (!token) return { 'Content-Type': 'application/json' };
+        
+        // Check token validity before returning headers
+        if (!this.isTokenValid()) {
+            return { 'Content-Type': 'application/json' };
+        }
+        
+        return {
             'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-        } : {
             'Content-Type': 'application/json'
         };
     },
@@ -36,8 +75,6 @@ const Auth = {
         localStorage.setItem('access_token', tokens.access);
         localStorage.setItem('refresh_token', tokens.refresh);
         localStorage.setItem('user_data', JSON.stringify(user));
-        
-        // Trigger event for navbar to update
         window.dispatchEvent(new Event('auth-change'));
     },
 
@@ -45,7 +82,6 @@ const Auth = {
     async logout() {
         const refreshToken = this.getRefreshToken();
         
-        // Try to blacklist token on server
         if (refreshToken) {
             try {
                 await fetch('/api/auth/logout/', {
@@ -61,13 +97,8 @@ const Auth = {
             }
         }
         
-        // Clear local storage
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('user_data');
-        
-        // Trigger event for navbar to update
-        window.dispatchEvent(new Event('auth-change'));
+        this.clearSession();
+        window.location.href = '/';
     },
 
     // Refresh token if expired
@@ -85,14 +116,14 @@ const Auth = {
             if (response.ok) {
                 const data = await response.json();
                 localStorage.setItem('access_token', data.access);
+                console.log('Token refreshed');
                 return true;
             }
         } catch (error) {
             console.error('Token refresh failed:', error);
         }
         
-        // If refresh fails, logout
-        await this.logout();
+        this.clearSession();
         return false;
     },
 
@@ -100,6 +131,8 @@ const Auth = {
     getUserDisplayName() {
         const user = this.getUser();
         if (!user) return null;
+        // Only show name if token is valid
+        if (!this.isTokenValid()) return null;
         return user.full_name || user.email.split('@')[0];
     }
 };
