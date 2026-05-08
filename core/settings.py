@@ -28,12 +28,21 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@y_ud+m#-4w$93&b$jlce#pf_tvutm!4%nk6y6i9a9rv0wlo_9'
+SECRET_KEY = os.getenv('SECRET_KEY')
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+# ALLOWED_HOSTS must be specific
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'newsdebate.onrender.com').split(',')
+
+# Security settings for production
+if not DEBUG:
+    SECURE_SSL_REDIRECT = False  # Force HTTPS
+    SESSION_COOKIE_SECURE = True  # Secure cookies
+    CSRF_COOKIE_SECURE = True  # Secure CSRF
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
@@ -62,7 +71,19 @@ INSTALLED_APPS = [
     'payments',
 ]
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/6.0/howto/static-files/
+
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'news/static'),
+]
+
+
 MIDDLEWARE = [
+    'whitenoise.middleware.WhiteNoiseMiddleware',  
     'core.middleware.DisableCSRFForAPI',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -73,6 +94,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ROOT_URLCONF = 'core.urls'
 
@@ -145,11 +167,6 @@ USE_I18N = True
 
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
-
-STATIC_URL = 'static/'
 
 
 
@@ -314,7 +331,7 @@ DEFAULT_FROM_EMAIL = 'NewsDebate <noreply@newsdebate.com>'
 
 # Optional: Add validation
 if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
-    print("⚠️ Email credentials missing! Check your .env file")
+    print("⚠️ Email credentials missing! Check.env file")
     # Fallback to console for safety
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 

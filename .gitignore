@@ -9,3 +9,6 @@ news_fetcher.log
 errors.log
 success.log
 debug.log
+
+staticfiles/ 
+.dockerignore
