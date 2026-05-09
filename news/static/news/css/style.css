@@ -72,3 +72,9 @@ html {
         font-size: 1.8rem !important;
     }
 }
+#mobile-menu.hide-mobile-menu {
+        display: none !important;
+    }
+    #mobile-menu.show-mobile-menu {
+        display: flex !important;
+        flex-direction: column;}
