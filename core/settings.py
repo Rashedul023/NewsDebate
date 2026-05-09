@@ -321,13 +321,12 @@ CORS_ALLOW_ALL_ORIGINS = True  # Only for development!
 
 # Email Configuration (Gmail)
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 465
-EMAIL_USE_SSL = True
-EMAIL_USE_TLS = False
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = 'NewsDebate <noreply@newsdebate.com>'
+EMAIL_HOST = 'smtp-relay.brevo.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('BREVO_LOGIN')      
+EMAIL_HOST_PASSWORD = os.getenv('BREVO_SMTP_KEY') 
+DEFAULT_FROM_EMAIL = os.getenv('BREVO_SENDER', 'noreply@newsdebate.com')
 
 # Optional: Add validation
 if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
